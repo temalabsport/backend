@@ -1,6 +1,8 @@
 const pool = require('../utils/sqlConnectionPool').pool;
 const hash = require('../utils/passwordHash');
 
+const auth = require('../middleware/auth');
+
 const Joi = require('joi');
 const express = require('express');
 const config = require('config');
@@ -86,6 +88,10 @@ router.post('/login', async (req, res) => {
         res.status(500).send('Server error');
         return;
     }
+});
+
+router.get('/me', auth, (req, res) => {
+    res.send(req.user);
 });
 
 const registerUserSchema = Joi.object().keys({
