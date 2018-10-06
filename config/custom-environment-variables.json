@@ -1,4 +1,5 @@
 {
     "port" : "PORT",
-    "sqlConnString" : "SQL_CONN_STRING"
+    "sqlConnString" : "SQL_CONN_STRING",
+    "jwtSecret" : "JWT_SECRET"
 }

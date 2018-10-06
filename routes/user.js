@@ -3,6 +3,8 @@ const hash = require('../utils/passwordHash');
 
 const Joi = require('joi');
 const express = require('express');
+const config = require('config');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
@@ -36,7 +38,54 @@ router.post('/register', async (req, res) => {
         return;
     }
 
-    res.status(201).message('User registered successfuly');
+    res.status(201).send('User registered successfuly');
+});
+
+router.post('/login', async (req, res) => {
+    const result = Joi.validate(req.body, loginUserSchema);
+
+    if (result.error) {
+        res.status(400).send('No or invalid credentials provided');
+        return;
+    }
+
+    const parameters = result.value;
+
+    try {
+        let result = await pool.request().query(
+            `SELECT ID, UserName, Email, PasswordHash, PasswordSalt, FullName FROM Users WHERE Email = '${parameters.email}'`
+        );
+        if (result.recordset.length !== 1) {
+            res.status(400).send('No or invalid credentials provided');
+            return;
+        } else {
+            const userData = result.recordset[0];
+            const passwordSalt = userData.PasswordSalt.toString('hex');
+            const passwordHash = userData.PasswordHash.toString('hex');
+            if (hash.validate(parameters.password, passwordSalt, passwordHash)) {
+                
+                const responseBody = {
+                    id : userData.ID,
+                    userName : userData.UserName,
+                    email : userData.Email,
+                    fullName : userData.FullName
+                };
+
+                const token = jwt.sign(responseBody, config.get('jwtSecret'));
+                responseBody.token = token;
+
+                res.header('x-auth-token', token).send(responseBody);
+                return;
+            } else {
+                res.status(400).send('No or invalid credentials provided');
+                return;
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        res.status(500).send('Server error');
+        return;
+    }
 });
 
 const registerUserSchema = Joi.object().keys({
@@ -44,4 +93,9 @@ const registerUserSchema = Joi.object().keys({
     email: Joi.string().email().required(),
     password: Joi.string().min(8).required(),
     fullName: Joi.string().required()
+}).options({ stripUnknown: true });
+
+const loginUserSchema = Joi.object().keys({
+    email: Joi.string().email().required(),
+    password: Joi.string().required()
 }).options({ stripUnknown: true });
