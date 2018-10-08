@@ -1,4 +1,5 @@
 const user = require('./routes/user');
+const sports = require('./routes/sports');
 
 const pool = require('./utils/sqlConnectionPool');
 
@@ -11,6 +12,7 @@ pool.init();
 app.use(express.json());
 
 app.use('/api/user', user);
+app.use('/api/sports/', sports);
 
 const port = config.get('port');
 app.listen(port, () => {
