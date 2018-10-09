@@ -1,4 +1,5 @@
 const pool = require('../utils/sqlConnectionPool').pool;
+const Joi = require('joi');
 
 const auth = require('../middleware/auth');
 
@@ -11,7 +12,7 @@ module.exports = router;
 router.get('/', auth, async (req, res) => {
     try {
         const result = await pool.request().query(
-            `SELECT Name FROM Events`
+            'SELECT Name FROM Events'
         );
 
         res.send(result.recordset);
@@ -21,3 +22,55 @@ router.get('/', auth, async (req, res) => {
         return;
     }
 });
+
+router.post('/new', async (req, res) => {
+    let result = Joi.validate(req.body, EventsSchema);
+
+    if (result.error) {
+        res.status(400).send(result.error.details[0].message);
+        return;
+    }
+    const event = result.value;
+
+    
+
+    try {
+       const sport = await pool.request().query(
+            `SELECT ID FROM Sports WHERE  Name = '${event.sportname}'`
+        );
+            //res.send(sport.recordset[0]);
+        if (sport.recordset.length === 0) {
+            res.status(409).send('This sport category does not exits');
+            return;
+        }
+
+        const user = await pool.request().query(
+            `SELECT ID FROM Users WHERE UserName = '${event.creator}'`
+        );
+        if (user.recordset.length === 0) {
+            res.status(409).send('User is not found');
+            return;
+        }
+        
+        result = await pool.request().query(
+            `INSERT INTO Events (SportID, UserID, Name, Location, Description) VALUES (${sport.recordset[0].ID}, ${user.recordset[0].ID}, '${event.name}', '${event.location}', '${event.description}')`
+        );
+    } catch (err) {
+        res.status(500).send('Server eror');
+        console.log('DATABASE ERROR : ', err);
+        return;
+    }
+
+    res.status(201).send('Event registered successfully');
+});
+
+const EventsSchema = Joi.object().keys({
+    sportname: Joi.string().required(),
+    creator: Joi.string().required(),
+    name: Joi.string().required(),
+    location: Joi.string().required(),
+    description: Joi.string().required()
+});
+
+
+
