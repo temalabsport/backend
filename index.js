@@ -14,7 +14,7 @@ app.use(express.json());
 
 app.use('/api/user', user);
 app.use('/api/sports/', sports);
-app.use('/api/events/',events);
+app.use('/api/events',events);
 
 const port = config.get('port');
 app.listen(port, () => {

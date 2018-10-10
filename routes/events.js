@@ -40,7 +40,7 @@ router.post('/new', async (req, res) => {
         );
             //res.send(sport.recordset[0]);
         if (sport.recordset.length === 0) {
-            res.status(409).send('This sport category does not exits');
+            res.status(409).send('This sport category does not exist');
             return;
         }
 
@@ -48,12 +48,12 @@ router.post('/new', async (req, res) => {
             `SELECT ID FROM Users WHERE UserName = '${event.creator}'`
         );
         if (user.recordset.length === 0) {
-            res.status(409).send('User is not found');
+            res.status(410).send('User is not found');
             return;
         }
         
         result = await pool.request().query(
-            `INSERT INTO Events (SportID, UserID, Name, Location, Description) VALUES (${sport.recordset[0].ID}, ${user.recordset[0].ID}, '${event.name}', '${event.location}', '${event.description}')`
+            `INSERT INTO Events (SportID, UserID, Name, Location,Date, Description) VALUES (${sport.recordset[0].ID}, ${user.recordset[0].ID}, '${event.name}', '${event.location}', '${event.datetime}', '${event.description}')`
         );
     } catch (err) {
         res.status(500).send('Server eror');
@@ -66,10 +66,11 @@ router.post('/new', async (req, res) => {
 
 const EventsSchema = Joi.object().keys({
     sportname: Joi.string().required(),
-    creator: Joi.string().required(),
+    creator: Joi.string().min(5).max(20).required(),
     name: Joi.string().required(),
     location: Joi.string().required(),
-    description: Joi.string().required()
+    datetime: Joi.string().required(),
+    description: Joi
 });
 
 
