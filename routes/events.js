@@ -11,11 +11,10 @@ module.exports = router;
 
 router.get('/', auth, async (req, res) => {
     try {
-        const result = await pool.request().query(
-            'SELECT Name FROM Events'
-        );
-
-        res.send(result.recordset);
+        let result = await pool.request().query(
+            'select Events.ID as id, Users.FullName as fullname,Users.Username as username, Sports.Name as sportname, Events.Name as eventname, Events.Location as location,Events.Description as description From Events join Users on Users.ID=Events.UserID join  Sports on Sports.ID=Events.SportID')
+  
+            res.send(result.recordsets)
     } catch (err) {
         res.status(500).send('Server error');
         console.log('DATABASE ERROR : ', err);
@@ -23,17 +22,15 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-router.post('/new', async (req, res) => {
-    let result = Joi.validate(req.body, EventsSchema);
+router.post('/new', auth, async (req, res) => {
+    let result = Joi.validate(req.body, NewEventsSchema);
 
     if (result.error) {
         res.status(400).send(result.error.details[0].message);
         return;
     }
     const event = result.value;
-
-    
-
+  
     try {
        const sport = await pool.request().query(
             `SELECT ID FROM Sports WHERE  Name = '${event.sportname}'`
@@ -43,9 +40,9 @@ router.post('/new', async (req, res) => {
             res.status(409).send('This sport category does not exist');
             return;
         }
-
+        console.log(req.user.userName);
         const user = await pool.request().query(
-            `SELECT ID FROM Users WHERE UserName = '${event.creator}'`
+            `SELECT ID FROM Users WHERE UserName = '${req.user.userName}'`
         );
         if (user.recordset.length === 0) {
             res.status(410).send('User is not found');
@@ -64,9 +61,10 @@ router.post('/new', async (req, res) => {
     res.status(201).send('Event registered successfully');
 });
 
-const EventsSchema = Joi.object().keys({
+
+
+const NewEventsSchema = Joi.object().keys({
     sportname: Joi.string().required(),
-    creator: Joi.string().min(5).max(20).required(),
     name: Joi.string().required(),
     location: Joi.string().required(),
     datetime: Joi.string().required(),
@@ -74,4 +72,13 @@ const EventsSchema = Joi.object().keys({
 });
 
 
-
+const GetEventsSchema = Joi.object().keys({
+    ID: Joi.string(),
+    fullname: Joi.string(),
+    username: Joi.string(),
+    sportname: Joi.string(),
+    eventname: Joi.string(),
+    location: Joi.string(),
+    datetime: Joi.string(),
+    description: Joi.string()
+}).options({ stripUnknown: true });
