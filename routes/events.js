@@ -1,5 +1,8 @@
-const pool = require('../utils/sqlConnectionPool').pool;
+//const pool = require('../utils/sqlConnectionPool').pool;
 const Joi = require('joi');
+const config = require('config');
+const sql = require('mssql');
+
 
 const auth = require('../middleware/auth');
 
@@ -10,16 +13,34 @@ const router = express.Router();
 module.exports = router;
 
 router.get('/', auth, async (req, res) => {
-    try {
-        let result = await pool.request().query(
-            'select Events.ID as id, Users.FullName as fullname,Users.Username as username, Sports.Name as sportname, Events.Name as eventname, Events.Location as location,Events.Description as description From Events join Users on Users.ID=Events.UserID join  Sports on Sports.ID=Events.SportID')
-  
-            res.send(result.recordsets)
-    } catch (err) {
-        res.status(500).send('Server error');
-        console.log('DATABASE ERROR : ', err);
+    /*let result = Joi.validate(req.body, NewEventsSchema);
+    if (result.error) {
+        res.status(400).send(result.error.details[0].message);
         return;
     }
+
+    const param = result.value
+*/
+
+//var password = req.param.userpassword;
+    sql.connect(config.get('sqlConnString'), function (err) {
+        if (err) console.log(err);
+        // create Request object
+        var request = new sql.Request();
+        console.log(req,query)
+        // query to the database and execute procedure 
+        let query = "GetEvents @SPORTNAME='" + "Foci"+ "';";
+        console.log(query)
+        request.query(query, function (err, recordset) {
+            if (err) {
+                console.log(err);
+                sql.close();
+            }
+            sql.close();
+            res.send(recordset);
+    
+        });
+      });
 });
 
 router.post('/new', auth, async (req, res) => {
@@ -71,14 +92,3 @@ const NewEventsSchema = Joi.object().keys({
     description: Joi
 });
 
-
-const GetEventsSchema = Joi.object().keys({
-    ID: Joi.string(),
-    fullname: Joi.string(),
-    username: Joi.string(),
-    sportname: Joi.string(),
-    eventname: Joi.string(),
-    location: Joi.string(),
-    datetime: Joi.string(),
-    description: Joi.string()
-}).options({ stripUnknown: true });
