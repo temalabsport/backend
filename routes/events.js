@@ -1,4 +1,4 @@
-//const pool = require('../utils/sqlConnectionPool').pool;
+const pool = require('../utils/sqlConnectionPool').pool;
 const Joi = require('joi');
 const config = require('config');
 const sql = require('mssql');
@@ -23,13 +23,34 @@ router.get('/', auth, async (req, res) => {
 */
 
 //var password = req.param.userpassword;
-    sql.connect(config.get('sqlConnString'), function (err) {
-        if (err) console.log(err);
+   
         // create Request object
-        var request = new sql.Request();
-        console.log(req,query)
+        let result = Joi.validate(req.query,SportnameShcema);
+        if (result.error)
+        {
+            res.status(400).send(result.error.details[0].message);
+            return;
+        }
+        if (req.query.sportname!='')
+        {
+            result = await pool.request().query(
+                `SELECT ID FROM Sports WHERE  Name = '${req.query.sportname}'`
+            );
+
+            if (result.recordset.length===0)
+            {
+                res.status(410).send('Sport is not fund');
+                return;
+            }
+        }
+        else 
+            req.query.sportname=''
+
+        
+        var request = pool.request();
+        console.log(req.query.sportname);
         // query to the database and execute procedure 
-        let query = "GetEvents @SPORTNAME='" + "Foci"+ "';";
+        let query = `GetEvents @SPORTNAME='${req.query.sportname}', @DATE_FROM ='${req.query.datefrom}', @DATE_TO='${req.query.dateto}';`;
         console.log(query)
         request.query(query, function (err, recordset) {
             if (err) {
@@ -37,11 +58,10 @@ router.get('/', auth, async (req, res) => {
                 sql.close();
             }
             sql.close();
-            res.send(recordset);
+            res.send(recordset.recordset);
     
         });
-      });
-});
+ });
 
 router.post('/new', auth, async (req, res) => {
     let result = Joi.validate(req.body, NewEventsSchema);
@@ -91,4 +111,12 @@ const NewEventsSchema = Joi.object().keys({
     datetime: Joi.string().required(),
     description: Joi
 });
+
+const SportnameShcema = Joi.object().keys({
+    sportname: Joi,
+    datefrom: Joi,
+    dateto: Joi
+
+});
+
 
