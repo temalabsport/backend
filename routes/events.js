@@ -9,7 +9,7 @@ const router = express.Router();
 module.exports = router;
 
 router.get('/', auth, async (req, res) => {
-    const result = Joi.validate(req.query, eventsSearchQueryParams);
+    const result = Joi.validate(req.query, eventsSearchQueryParamsSchema);
     if (result.error) {
         res.status(400).send(result.error.details[0].message);
         return;
@@ -35,7 +35,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 router.post('/new', auth, async (req, res) => {
-    let result = Joi.validate(req.body, NewEventsSchema);
+    let result = Joi.validate(req.body, newEventSchema);
 
     if (result.error) {
         res.status(400).send(result.error.details[0].message);
@@ -73,15 +73,15 @@ router.post('/new', auth, async (req, res) => {
     res.status(201).send('Event registered successfully');
 });
 
-const NewEventsSchema = Joi.object().keys({
-    sportname: Joi.string().required(),
+const newEventSchema = Joi.object().keys({
+    sportName: Joi.string().required(),
     name: Joi.string().required(),
     location: Joi.string().required(),
-    datetime: Joi.string().required(),
-    description: Joi
+    date: Joi.string().required(),
+    description: Joi.string()
 }).options({ stripUnknown: true });
 
-const eventsSearchQueryParams = Joi.object().keys({
+const eventsSearchQueryParamsSchema = Joi.object().keys({
     sportName: Joi.string(),
     dateFrom: Joi.date().iso().default(() => new Date().toISOString(), 'current time'),
     dateTo: Joi.date().iso(),

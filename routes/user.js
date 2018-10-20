@@ -7,6 +7,7 @@ const Joi = require('joi');
 const express = require('express');
 const config = require('config');
 const jwt = require('jsonwebtoken');
+const sql = require('mssql');
 
 const router = express.Router();
 
@@ -22,19 +23,32 @@ router.post('/register', async (req, res) => {
     const user = result.value;
 
     try {
-        let result = await pool.request().query(
-            `SELECT ID FROM Users WHERE Email = '${user.email}' OR UserName = '${user.userName}'`
+        const checkRequest = pool.request();
+        checkRequest.input('EMAIL', user.email);
+        checkRequest.input('USERNAME', user.userName);
+
+        let checkResult = await checkRequest.query(
+            `SELECT ID FROM Users WHERE Email = @EMAIL OR UserName = @USERNAME`
         );
-        if (result.recordset.length !== 0) {
+
+        if (checkResult.recordset.length !== 0) {
             res.status(409).send('User is already registered');
             return;
         }
 
         const passwordData = hash.generateNew(user.password);
-        await pool.request().query(
-            `INSERT INTO Users (UserName, Email, PasswordHash, PasswordSalt, FullName) VALUES ('${user.userName}', '${user.email}', 0x${passwordData.passwordHash}, 0x${passwordData.passwordSalt}, '${user.fullName}')`
+
+        const insertRequest = pool.request();
+        insertRequest.input('USERNAME', user.userName);
+        insertRequest.input('EMAIL', user.email);
+        insertRequest.input('HASH', passwordData.passwordHash);
+        insertRequest.input('SALT', passwordData.passwordSalt);
+        insertRequest.input('FULLNAME', user.fullName);
+
+        await insertRequest.query(
+            `INSERT INTO Users (UserName, Email, PasswordHash, PasswordSalt, FullName) VALUES (@USERNAME, @EMAIL, @HASH, @SALT, @FULLNAME)`
         );
-        
+
         res.status(201).send('User registered successfuly');
         return;
     } catch (error) {
@@ -52,21 +66,23 @@ router.post('/login', async (req, res) => {
         return;
     }
 
-    const parameters = result.value;
+    const params = result.value;
 
     try {
-        const result = await pool.request().query(
-            `SELECT ID, UserName, Email, PasswordHash, PasswordSalt, FullName FROM Users WHERE Email = '${parameters.email}'`
+        const request = pool.request();
+        request.input('EMAIL', params.email);
+        const result = await request.query(
+            `SELECT UserName, Email, PasswordHash, PasswordSalt, FullName FROM Users WHERE Email = @EMAIL`
         );
         if (result.recordset.length !== 1) {
             res.status(400).send('No or invalid credentials provided');
+            return;
         } else {
             const userData = result.recordset[0];
             const passwordSalt = userData.PasswordSalt.toString('hex');
             const passwordHash = userData.PasswordHash.toString('hex');
-            if (hash.validate(parameters.password, passwordSalt, passwordHash)) {
+            if (hash.validate(params.password, passwordSalt, passwordHash)) {
                 const responseBody = {
-                    id: userData.ID,
                     userName: userData.UserName,
                     email: userData.Email,
                     fullName: userData.FullName
@@ -75,13 +91,16 @@ router.post('/login', async (req, res) => {
                 const token = jwt.sign(responseBody, config.get('jwtSecret'));
 
                 res.header('x-auth-token', token).send(responseBody);
+                return;
             } else {
                 res.status(400).send('No or invalid credentials provided');
+                return;
             }
         }
     } catch (err) {
         console.log(err);
         res.status(500).send('Server error');
+        return;
     }
 });
 

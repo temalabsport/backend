@@ -1,27 +1,28 @@
-var crypto = require('crypto');
+const crypto = require('crypto');
 
-function genRandomString(length) {
-    return crypto.randomBytes(Math.ceil(length / 2))
-        .toString('hex')
-        .slice(0, length);
+const HASH_ALGORITHM = 'sha512';
+const SALT_SIZE = 16;
+
+function sha512(passwordBuffer, saltBuffer) {
+    const hash = crypto.createHmac(HASH_ALGORITHM, saltBuffer);
+    hash.update(passwordBuffer);
+    return hash.digest();
 };
 
-function sha512(password, salt) {
-    var hash = crypto.createHmac('sha512', salt);
-    hash.update(password);
-    return hash.digest('hex');
-};
-
-module.exports.generateNew = function (password) {
-    var salt = genRandomString(16);
-    var value = sha512(password, salt);
+module.exports.generateNew = function (passwordString) {
+    const passwordBuffer = Buffer.from(passwordString);
+    var saltBuffer = crypto.randomBytes(SALT_SIZE);
+    var hashBuffer = sha512(passwordBuffer, saltBuffer);
     return {
-        passwordSalt: salt,
-        passwordHash: value
+        passwordSalt: saltBuffer,
+        passwordHash: hashBuffer
     };
 };
 
-module.exports.validate = function (password, salt, hash) {
-    const passwordHash = sha512(password, salt);
-    return passwordHash === hash;
+module.exports.validate = function (passwordString, saltStringHex, hashStringHex) {
+    const passwordBuffer = Buffer.from(passwordString);
+    const saltBuffer = Buffer.from(saltStringHex, 'hex');
+    const hashBuffer = Buffer.from(hashStringHex, 'hex');
+    const passwordHash = sha512(passwordBuffer, saltBuffer);
+    return Buffer.compare(passwordHash, hashBuffer) === 0;
 }
