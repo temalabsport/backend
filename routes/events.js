@@ -16,7 +16,6 @@ router.get('/', auth, async (req, res) => {
     }
 
     const params = result.value;
-    console.log(params);
 
     try {
         const request = await pool.request();
