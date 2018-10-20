@@ -31,16 +31,17 @@ router.post('/register', async (req, res) => {
         }
 
         const passwordData = hash.generateNew(user.password);
-        result = await pool.request().query(
+        await pool.request().query(
             `INSERT INTO Users (UserName, Email, PasswordHash, PasswordSalt, FullName) VALUES ('${user.userName}', '${user.email}', 0x${passwordData.passwordHash}, 0x${passwordData.passwordSalt}, '${user.fullName}')`
         );
-    } catch (err) {
+        
+        res.status(201).send('User registered successfuly');
+        return;
+    } catch (error) {
         res.status(500).send('Server error');
-        console.log('DATABASE ERROR : ', err);
+        console.log('DATABASE ERROR : ', error);
         return;
     }
-
-    res.status(201).send('User registered successfuly');
 });
 
 router.post('/login', async (req, res) => {
@@ -54,39 +55,33 @@ router.post('/login', async (req, res) => {
     const parameters = result.value;
 
     try {
-        let result = await pool.request().query(
+        const result = await pool.request().query(
             `SELECT ID, UserName, Email, PasswordHash, PasswordSalt, FullName FROM Users WHERE Email = '${parameters.email}'`
         );
         if (result.recordset.length !== 1) {
             res.status(400).send('No or invalid credentials provided');
-            return;
         } else {
             const userData = result.recordset[0];
             const passwordSalt = userData.PasswordSalt.toString('hex');
             const passwordHash = userData.PasswordHash.toString('hex');
             if (hash.validate(parameters.password, passwordSalt, passwordHash)) {
-                
                 const responseBody = {
-                    id : userData.ID,
-                    userName : userData.UserName,
-                    email : userData.Email,
-                    fullName : userData.FullName
+                    id: userData.ID,
+                    userName: userData.UserName,
+                    email: userData.Email,
+                    fullName: userData.FullName
                 };
 
                 const token = jwt.sign(responseBody, config.get('jwtSecret'));
-                responseBody.token = token;
 
                 res.header('x-auth-token', token).send(responseBody);
-                return;
             } else {
                 res.status(400).send('No or invalid credentials provided');
-                return;
             }
         }
     } catch (err) {
         console.log(err);
         res.status(500).send('Server error');
-        return;
     }
 });
 

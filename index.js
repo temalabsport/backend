@@ -8,15 +8,15 @@ const config = require('config');
 const express = require('express');
 const app = express();
 
-pool.init();
-
 app.use(express.json());
 
 app.use('/api/user', user);
-app.use('/api/sports/', sports);
+app.use('/api/sports', sports);
 app.use('/api/events',events);
 
 const port = config.get('port');
-app.listen(port, () => {
-    console.log(`Server listening on port ${port}...`);
-});
+
+pool.init().then(() => {
+app.listen(port, () =>
+    console.log(`Server listening on port ${port}...`)
+)});
