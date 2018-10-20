@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 const HASH_ALGORITHM = 'sha512';
-const SALT_SIZE = 16;
+const SALT_SIZE = 16; // bytes
 
 function sha512(passwordBuffer, saltBuffer) {
     const hash = crypto.createHmac(HASH_ALGORITHM, saltBuffer);

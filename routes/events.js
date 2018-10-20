@@ -9,19 +9,21 @@ const router = express.Router();
 module.exports = router;
 
 router.get('/', auth, async (req, res) => {
-    const result = Joi.validate(req.query, eventsSearchQueryParamsSchema);
+    const result = Joi.validate(req.query, eventSearchQueryParamsSchema);
     if (result.error) {
         res.status(400).send(result.error.details[0].message);
         return;
     }
 
     const params = result.value;
+    console.log(params);
 
     try {
         const request = await pool.request();
-        request.input('SPORTNAME', params.sportName);
+        request.input('SPORT', params.sport);
         request.input('DATE_FROM', params.dateFrom);
         request.input('DATE_TO', params.dateTo);
+        request.input('ORDER_BY', params.orderBy);
         request.input('PAGE_SIZE', params.pageSize);
         request.input('PAGE', params.page);
         let result = await request.execute('GetEvents');
@@ -35,56 +37,76 @@ router.get('/', auth, async (req, res) => {
 });
 
 router.post('/new', auth, async (req, res) => {
-    let result = Joi.validate(req.body, newEventSchema);
+    const result = Joi.validate(req.body, newEventSchema);
 
     if (result.error) {
         res.status(400).send(result.error.details[0].message);
         return;
     }
-    const event = result.value;
+
+    const newEvent = result.value;
 
     try {
-        const sport = await pool.request().query(
-            `SELECT ID FROM Sports WHERE  Name = '${event.sportname}'`
+        const sportRequest = pool.request();
+        sportRequest.input('SPORT', newEvent.sport)
+        const sportResult = await sportRequest.query(
+            `SELECT ID FROM Sports WHERE Name = @SPORT`
         );
-        //res.send(sport.recordset[0]);
-        if (sport.recordset.length === 0) {
-            res.status(409).send('This sport category does not exist');
-            return;
-        }
-        console.log(req.user.userName);
-        const user = await pool.request().query(
-            `SELECT ID FROM Users WHERE UserName = '${req.user.userName}'`
-        );
-        if (user.recordset.length === 0) {
-            res.status(410).send('User is not found');
+        if (sportResult.recordset.length !== 1) {
+            res.status(400).send('Sport not found');
             return;
         }
 
-        result = await pool.request().query(
-            `INSERT INTO Events (SportID, UserID, Name, Location,Date, Description) VALUES (${sport.recordset[0].ID}, ${user.recordset[0].ID}, '${event.name}', '${event.location}', '${event.datetime}', '${event.description}')`
+        const sportID = sportResult.recordset[0].ID;
+
+        const userRequest = pool.request();
+        userRequest.input('USERNAME', req.user.userName);
+        const userResult = await userRequest.query(
+            `SELECT ID FROM Users WHERE UserName = @USERNAME`
         );
-    } catch (err) {
-        res.status(500).send('Server eror');
-        console.log('DATABASE ERROR : ', err);
+        if (userResult.recordset.length !== 1) {
+            res.status(500).send('Server Error');
+            console.log('WARNING : ', 'valid token used without registered username pair in database');
+            return;
+        }
+
+        const userID = userResult.recordset[0].ID;
+
+        const insertRequest = pool.request();
+        insertRequest.input('SPORT_ID', sportID);
+        insertRequest.input('USER_ID', userID);
+        insertRequest.input('NAME', newEvent.name);
+        insertRequest.input('LOCATION', newEvent.location);
+        insertRequest.input('DATE', newEvent.date);
+        insertRequest.input('DEADLINE', newEvent.deadline);
+        insertRequest.input('DESCRIPTION', newEvent.description);
+        await insertRequest.query(
+            `INSERT INTO Events (SportID, UserID, Name, Location, Date, Deadline, Description) VALUES ( @SPORT_ID, @USER_ID, @NAME, @LOCATION, @DATE, @DEADLINE, @DESCRIPTION )`
+        );
+
+        res.status(201).send('Event successfully created');
+        return;
+    } catch (error) {
+        res.status(500).send('Server error');
+        console.log('DATABASE ERROR : ', error);
         return;
     }
-
-    res.status(201).send('Event registered successfully');
 });
 
 const newEventSchema = Joi.object().keys({
-    sportName: Joi.string().required(),
+    sport: Joi.string().required(),
     name: Joi.string().required(),
     location: Joi.string().required(),
-    date: Joi.string().required(),
-    description: Joi.string()
+    date: Joi.date().iso().required(),
+    deadline: Joi.date().iso().required(),
+    description: Joi.string().required()
 }).options({ stripUnknown: true });
 
-const eventsSearchQueryParamsSchema = Joi.object().keys({
-    sportName: Joi.string(),
+const eventSearchQueryParamsSchema = Joi.object().keys({
+    sport: Joi.string(),
     dateFrom: Joi.date().iso().default(() => new Date().toISOString(), 'current time'),
     dateTo: Joi.date().iso(),
+    orderBy: Joi.string().valid('date', 'deadline', 'name', 'location').default('date'),
     pageSize: Joi.number().min(1).max(100).default(10),
     page: Joi.number().min(1).default(1)
 }).options({ stripUnknown: true });

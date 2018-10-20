@@ -7,8 +7,8 @@ exports.init = async function () {
     try {
         await pool.connect();
         console.log("Connected to database...");
-    } catch (err) {
-        console.log('CRITICAL ERROR : Could not connect to database', err);
+    } catch (error) {
+        console.log('CRITICAL ERROR : Could not connect to database', error);
         process.exit(1);
     }
 }
