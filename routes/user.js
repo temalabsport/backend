@@ -7,7 +7,6 @@ const Joi = require('joi');
 const express = require('express');
 const config = require('config');
 const jwt = require('jsonwebtoken');
-const sql = require('mssql');
 
 const router = express.Router();
 
@@ -110,7 +109,7 @@ router.get('/me', auth, (req, res) => {
 
 const registerUserSchema = Joi.object().keys({
     userName: Joi.string().min(5).max(20).required(),
-    email: Joi.string().email().required(),
+    email: Joi.string().max(255).email().required(),
     password: Joi.string().min(8).required(),
     fullName: Joi.string().required()
 }).options({ stripUnknown: true });

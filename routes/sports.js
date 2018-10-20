@@ -14,9 +14,9 @@ router.get('/', auth, async (req, res) => {
             `SELECT Name AS name, MinPlayers AS minPlayers, MaxPlayers AS maxPlayers FROM Sports`
         );
         res.send(result.recordset);
-    } catch (err) {
+    } catch (error) {
         res.status(500).send('Server error');
-        console.log('DATABASE ERROR : ', err);
+        console.log('DATABASE ERROR : ', error);
         return;
     }
 });
