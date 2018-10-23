@@ -8,7 +8,7 @@ const router = express.Router();
 
 module.exports = router;
 
-router.get('/', auth, async (req, res) => {
+router.get('/search', auth, async (req, res) => {
     const result = Joi.validate(req.query, eventSearchQueryParamsSchema);
     if (result.error) {
         res.status(400).send(result.error.details[0].message);

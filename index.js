@@ -1,6 +1,6 @@
 const user = require('./routes/user');
 const sports = require('./routes/sports');
-const events = require('./routes/events');
+const event = require('./routes/event');
 
 const pool = require('./utils/sqlConnectionPool');
 
@@ -12,7 +12,7 @@ app.use(express.json());
 
 app.use('/api/user', user);
 app.use('/api/sports', sports);
-app.use('/api/events', events);
+app.use('/api/event', event);
 
 const port = config.get('port');
 
