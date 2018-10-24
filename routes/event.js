@@ -3,19 +3,20 @@ const auth = require('../middleware/auth');
 
 const Joi = require('joi');
 const express = require('express');
+const sql = require('mssql');
 
 const router = express.Router();
 
 module.exports = router;
 
 router.get('/search', auth, async (req, res) => {
-    const result = Joi.validate(req.query, eventSearchQueryParamsSchema);
-    if (result.error) {
-        res.status(400).send(result.error.details[0].message);
+    const validateResult = Joi.validate(req.query, eventSearchQueryParamsSchema);
+    if (validateResult.error) {
+        res.status(400).send(validateResult.error.details[0].message);
         return;
     }
 
-    const params = result.value;
+    const params = validateResult.value;
 
     try {
         const searchRequest = await pool.request();
@@ -27,11 +28,11 @@ router.get('/search', auth, async (req, res) => {
         searchRequest.input('PAGE', params.page);
         searchRequest.output('TOTAL_RESULTS');
         searchRequest.output('TOTAL_PAGES');
-        let result = await searchRequest.execute('GetEvents');
+        const searchResult = await searchRequest.execute('GetEvents');
         const ret = {
-            results: result.recordset,
-            totalResults: result.output.TOTAL_RESULTS,
-            totalPages: result.output.TOTAL_PAGES
+            results: searchResult.recordset,
+            totalResults: searchResult.output.TOTAL_RESULTS,
+            totalPages: searchResult.output.TOTAL_PAGES
         }
         res.send(ret);
         return;
@@ -43,14 +44,14 @@ router.get('/search', auth, async (req, res) => {
 });
 
 router.post('/new', auth, async (req, res) => {
-    const result = Joi.validate(req.body, newEventSchema);
+    const validateResult = Joi.validate(req.body, newEventSchema);
 
-    if (result.error) {
-        res.status(400).send(result.error.details[0].message);
+    if (validateResult.error) {
+        res.status(400).send(validateResult.error.details[0].message);
         return;
     }
 
-    const newEvent = result.value;
+    const newEvent = validateResult.value;
 
     try {
         const sportRequest = pool.request();

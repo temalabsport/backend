@@ -58,14 +58,14 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-    const result = Joi.validate(req.body, loginUserSchema);
+    const validateResult = Joi.validate(req.body, loginUserSchema);
 
-    if (result.error) {
+    if (validateResult.error) {
         res.status(400).send('No or invalid credentials provided');
         return;
     }
 
-    const params = result.value;
+    const params = validateResult.value;
 
     try {
         const request = pool.request();
@@ -107,6 +107,71 @@ router.get('/me', auth, (req, res) => {
     res.send(req.user);
 });
 
+router.get('/search', auth, async (req, res) => {
+    const validateResult = Joi.validate(req.query, searchQueryParamsSchema);
+    if (validateResult.error) {
+        res.status(400).send(validateResult.error.details[0].message);
+        return;
+    }
+
+    const params = validateResult.value;
+    try {
+        const searchRequest = pool.request();
+        searchRequest.input('KeyWord', params.q);
+        searchRequest.input('OrderBy', params.orderBy);
+        searchRequest.input('PageSize', params.pageSize);
+        searchRequest.input('Page', params.page);
+        searchRequest.output('TotalResults');
+        searchRequest.output('TotalPages');
+        const searchResult = await searchRequest.execute('SearchUsers');
+
+        const ret = {
+            results: searchResult.recordset,
+            totalResults: searchResult.output.TotalResults,
+            totalPages: searchResult.output.TotalPages
+        }
+        res.send(ret);
+        return;
+    } catch (error) {
+        res.status(500).send('Server error');
+        console.log('DATABASE ERROR : ', error);
+        return;
+    }
+});
+
+router.get('/findByUserName/:userName', auth, async (req, res) => {
+    const validateResult = Joi.validate(req.params.userName, Joi.string());
+    if (validateResult.error) {
+        res.status(400).send(validateResult.error.details[0].message);
+        return;
+    }
+
+    const userName = validateResult.value;
+
+    try {
+        const userRequest = pool.request();
+        userRequest.input('UserName', userName);
+        const userResult = await userRequest.query(
+            `SELECT Users.UserName AS userName, Users.FullName AS fullName, Users.Introduction AS introduction FROM Users WHERE Users.UserName = @UserName`
+        );
+
+        console.log(userRequest);
+
+        if (userResult.recordset.length !== 1) {
+            res.status(400).send('User with given userName does not exist');
+            return;
+        } else {
+            res.send(userResult.recordset[0]);
+            return;
+        }
+
+    } catch (error) {
+        res.status(500).send('Server error');
+        console.log('DATABASE ERROR : ', error);
+        return;
+    }
+});
+
 const registerUserSchema = Joi.object().keys({
     userName: Joi.string().min(5).max(20).required(),
     email: Joi.string().max(255).email().required(),
@@ -118,3 +183,10 @@ const loginUserSchema = Joi.object().keys({
     email: Joi.string().email().required(),
     password: Joi.string().required()
 }).options({ stripUnknown: true });
+
+const searchQueryParamsSchema = Joi.object().keys({
+    q: Joi.string(),
+    orderBy: Joi.string().valid('userName', 'fullName').default('userName'),
+    pageSize: Joi.number().min(1).max(100).default(10),
+    page: Joi.number().min(1).default(1)
+});
