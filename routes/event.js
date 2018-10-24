@@ -18,15 +18,22 @@ router.get('/search', auth, async (req, res) => {
     const params = result.value;
 
     try {
-        const request = await pool.request();
-        request.input('SPORT', params.sport);
-        request.input('DATE_FROM', params.dateFrom);
-        request.input('DATE_TO', params.dateTo);
-        request.input('ORDER_BY', params.orderBy);
-        request.input('PAGE_SIZE', params.pageSize);
-        request.input('PAGE', params.page);
-        let result = await request.execute('GetEvents');
-        res.send(result.recordset);
+        const searchRequest = await pool.request();
+        searchRequest.input('SPORT', params.sport);
+        searchRequest.input('DATE_FROM', params.dateFrom);
+        searchRequest.input('DATE_TO', params.dateTo);
+        searchRequest.input('ORDER_BY', params.orderBy);
+        searchRequest.input('PAGE_SIZE', params.pageSize);
+        searchRequest.input('PAGE', params.page);
+        searchRequest.output('TOTAL_RESULTS');
+        searchRequest.output('TOTAL_PAGES');
+        let result = await searchRequest.execute('GetEvents');
+        const ret = {
+            results: result.recordset,
+            totalResults: result.output.TOTAL_RESULTS,
+            totalPages: result.output.TOTAL_PAGES
+        }
+        res.send(ret);
         return;
     } catch (error) {
         res.status(500).send('Server error');
@@ -97,7 +104,7 @@ const newEventSchema = Joi.object().keys({
     name: Joi.string().required(),
     location: Joi.string().required(),
     date: Joi.date().iso().required(),
-    deadline: Joi.date().iso().required(),
+    deadline: Joi.date().iso().min(Joi.ref('date')).required(),
     description: Joi.string().required()
 }).options({ stripUnknown: true });
 
