@@ -20,6 +20,7 @@ router.get('/search', auth, async (req, res) => {
 
     try {
         const searchRequest = await pool.request();
+        //searchRequest.input('USERNAME', params.userName);
         searchRequest.input('SPORT', params.sport);
         searchRequest.input('DATE_FROM', params.dateFrom);
         searchRequest.input('DATE_TO', params.dateTo);
@@ -100,6 +101,38 @@ router.post('/new', auth, async (req, res) => {
     }
 });
 
+router.post('/apply', auth, async (req, res) => {
+    const validateResult = Joi.validate(req.body, eventApplySchema);
+
+    if (validateResult.error) {
+        res.status(400).send(validateResult.error.details[0].message);
+        return;
+    }
+
+    const params = validateResult.value;
+
+    try {
+        const applyRequest = pool.request();
+        applyRequest.input('EventID', params.eventID);
+        applyRequest.input('Creator', req.user.userName);
+        applyRequest.input('TeamName', params.teamName);
+        const tvp = new sql.Table();
+        tvp.columns.add('UserName', sql.VarChar(20));
+        params.members.forEach(userName => {
+            tvp.rows.add(userName);
+        });
+        applyRequest.input('UserNameList', tvp);
+
+        await applyRequest.execute('ApplyForEvent');
+        res.status(201).send("Successfully applied for Event");
+        return;
+    } catch (error) {
+        res.status(500).send('Server error');
+        console.log('DATABASE ERROR : ', error);
+        return;
+    }
+});
+
 const newEventSchema = Joi.object().keys({
     sport: Joi.string().required(),
     name: Joi.string().required(),
@@ -110,6 +143,7 @@ const newEventSchema = Joi.object().keys({
 }).options({ stripUnknown: true });
 
 const eventSearchQueryParamsSchema = Joi.object().keys({
+    userName: Joi.string(),
     sport: Joi.string(),
     dateFrom: Joi.date().iso().default(() => new Date().toISOString(), 'current time'),
     dateTo: Joi.date().iso(),
@@ -118,4 +152,8 @@ const eventSearchQueryParamsSchema = Joi.object().keys({
     page: Joi.number().min(1).default(1)
 }).options({ stripUnknown: true });
 
-
+const eventApplySchema = Joi.object().keys({
+    eventID: Joi.number().required(),
+    teamName: Joi.string().min(5).required(),
+    members: Joi.array().items(Joi.string()).min(1).required()
+}).options({ stripUnknown: true });
