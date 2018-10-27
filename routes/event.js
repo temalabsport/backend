@@ -20,20 +20,20 @@ router.get('/search', auth, async (req, res) => {
 
     try {
         const searchRequest = await pool.request();
-        //searchRequest.input('USERNAME', params.userName);
-        searchRequest.input('SPORT', params.sport);
-        searchRequest.input('DATE_FROM', params.dateFrom);
-        searchRequest.input('DATE_TO', params.dateTo);
-        searchRequest.input('ORDER_BY', params.orderBy);
-        searchRequest.input('PAGE_SIZE', params.pageSize);
-        searchRequest.input('PAGE', params.page);
-        searchRequest.output('TOTAL_RESULTS');
-        searchRequest.output('TOTAL_PAGES');
+        searchRequest.input('UserName', params.userName);
+        searchRequest.input('Sport', params.sport);
+        searchRequest.input('DateFrom', params.dateFrom);
+        searchRequest.input('DateTo', params.dateTo);
+        searchRequest.input('OrderBy', params.orderBy);
+        searchRequest.input('PageSize', params.pageSize);
+        searchRequest.input('Page', params.page);
+        searchRequest.output('TotalResults');
+        searchRequest.output('TotalPages');
         const searchResult = await searchRequest.execute('GetEvents');
         const ret = {
             results: searchResult.recordset,
-            totalResults: searchResult.output.TOTAL_RESULTS,
-            totalPages: searchResult.output.TOTAL_PAGES
+            totalResults: searchResult.output.TotalResults,
+            totalPages: searchResult.output.TotalPages
         }
         res.send(ret);
         return;
@@ -122,10 +122,22 @@ router.post('/apply', auth, async (req, res) => {
             tvp.rows.add(userName);
         });
         applyRequest.input('UserNameList', tvp);
+        applyRequest.output('ResultMessage');
 
-        await applyRequest.execute('ApplyForEvent');
-        res.status(201).send("Successfully applied for Event");
-        return;
+        applyResult = await applyRequest.execute('ApplyForEvent');
+        
+        switch (applyResult.returnValue) {
+            case 0:
+                res.status(201).send(applyResult.output.ResultMessage);
+                return;
+            case 1:
+                res.status(400).send(applyResult.output.ResultMessage);
+                return;
+        
+            default:
+                res.status(500).send("Server error");
+                return;
+        }
     } catch (error) {
         res.status(500).send('Server error');
         console.log('DATABASE ERROR : ', error);
