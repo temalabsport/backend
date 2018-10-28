@@ -150,7 +150,7 @@ const newEventSchema = Joi.object().keys({
     name: Joi.string().required(),
     location: Joi.string().required(),
     date: Joi.date().iso().required(),
-    deadline: Joi.date().iso().min(Joi.ref('date')).required(),
+    deadline: Joi.date().iso().max(Joi.ref('date')).required(),
     description: Joi.string().required()
 }).options({ stripUnknown: true });
 
