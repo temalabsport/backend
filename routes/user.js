@@ -7,6 +7,7 @@ const Joi = require('joi');
 const express = require('express');
 const config = require('config');
 const jwt = require('jsonwebtoken');
+const sql = require('mssql');
 
 const router = express.Router();
 
@@ -69,21 +70,20 @@ router.post('/login', async (req, res) => {
 
     try {
         const request = pool.request();
-        request.input('EMAIL', params.email);
+        request.input('Email', params.email);
         const result = await request.query(
-            `SELECT UserName, Email, PasswordHash, PasswordSalt, FullName FROM Users WHERE Email = @EMAIL`
+            `SELECT UserName, PasswordHash, PasswordSalt, FullName FROM Users WHERE Email = @Email`
         );
         if (result.recordset.length !== 1) {
             res.status(400).send('No or invalid credentials provided');
             return;
         } else {
             const userData = result.recordset[0];
-            const passwordSalt = userData.PasswordSalt.toString('hex');
-            const passwordHash = userData.PasswordHash.toString('hex');
+            const passwordSalt = userData.PasswordSalt;
+            const passwordHash = userData.PasswordHash;
             if (hash.validate(params.password, passwordSalt, passwordHash)) {
                 const responseBody = {
                     userName: userData.UserName,
-                    email: userData.Email,
                     fullName: userData.FullName
                 };
 
@@ -107,13 +107,72 @@ router.get('/me', auth, (req, res) => {
     res.send(req.user);
 });
 
+router.put('/update', auth, async (req, res) => {
+    const validateResult = Joi.validate(req.body, updateUserSchema);
+    if (validateResult.error) {
+        res.status(400).send(validateResult.error.details[0].message);
+        return;
+    }
+    const params = validateResult.value;
+
+    try {
+        const userRequest = pool.request();
+        userRequest.input('UserName', req.user.userName);
+        const userResult = await userRequest.query(
+            `SELECT PasswordHash, PasswordSalt FROM Users WHERE UserName = @UserName`
+        );
+        if (userResult.recordset.length !== 1) {
+            res.status(400).send('Invalid Token');
+            return;
+        } else {
+            const userData = userResult.recordset[0];
+            const passwordSalt = userData.PasswordSalt;
+            const passwordHash = userData.PasswordHash;
+            if (hash.validate(params.currentPassword, passwordSalt, passwordHash)) {
+                let newPasswordSalt = undefined;
+                let newPasswordHash = undefined;
+
+                if(params.newPassword !== undefined){
+                    const newPasswordData = hash.generateNew(params.newPassword);
+                    newPasswordSalt = newPasswordData.passwordSalt;
+                    newPasswordHash = newPasswordData.passwordHash;
+                }
+
+                const updateRequest = pool.request();
+                updateRequest.input('UserName', req.user.userName)
+                updateRequest.input('NewFullName', params.newFullName);
+                updateRequest.input('NewIntroduction', params.newIntroduction);
+                updateRequest.input('NewPasswordSalt', sql.Binary, newPasswordSalt);
+                updateRequest.input('NewPasswordHash', sql.Binary, newPasswordHash);
+                await updateRequest.query(
+                    `UPDATE Users SET 
+                    FullName = COALESCE( @NewFullName, FullName ), 
+                    Introduction = COALESCE( @NewIntroduction, Introduction ), 
+                    PasswordSalt = COALESCE( @NewPasswordSalt, PasswordSalt ),
+                    PasswordHash = COALESCE( @NewPasswordHash, PasswordHash)
+                    WHERE UserName = @UserName`
+                );
+
+                res.status(201).send('Successfully updated');
+                return;
+            } else {
+                res.status(400).send('Invalid currentPassword provided');
+                return;
+            }
+        }
+    } catch (error) {
+        res.status(500).send('Server error');
+        console.log('DATABASE ERROR : ', error);
+        return;
+    }
+});
+
 router.get('/search', auth, async (req, res) => {
     const validateResult = Joi.validate(req.query, searchQueryParamsSchema);
     if (validateResult.error) {
         res.status(400).send(validateResult.error.details[0].message);
         return;
     }
-
     const params = validateResult.value;
     try {
         const searchRequest = pool.request();
@@ -184,9 +243,16 @@ const loginUserSchema = Joi.object().keys({
     password: Joi.string().required()
 }).options({ stripUnknown: true });
 
+const updateUserSchema = Joi.object().keys({
+    newFullName: Joi.string(),
+    newIntroduction: Joi.string(),
+    newPassword: Joi.string().min(8),
+    currentPassword: Joi.string().required()
+}).or('newFullName', 'newIntroduction', 'newPassword').options({ stripUnknown: true });
+
 const searchQueryParamsSchema = Joi.object().keys({
     q: Joi.string(),
     orderBy: Joi.string().valid('userName', 'fullName').default('userName'),
     pageSize: Joi.number().min(1).max(100).default(10),
     page: Joi.number().min(1).default(1)
-});
+}).options({ stripUnknown: true });

@@ -19,10 +19,8 @@ module.exports.generateNew = function (passwordString) {
     };
 };
 
-module.exports.validate = function (passwordString, saltStringHex, hashStringHex) {
+module.exports.validate = function (passwordString, saltBuffer, hashBuffer) {
     const passwordBuffer = Buffer.from(passwordString);
-    const saltBuffer = Buffer.from(saltStringHex, 'hex');
-    const hashBuffer = Buffer.from(hashStringHex, 'hex');
     const passwordHash = sha512(passwordBuffer, saltBuffer);
     return Buffer.compare(passwordHash, hashBuffer) === 0;
 }
