@@ -24,6 +24,8 @@ router.get('/search', auth, async (req, res) => {
         searchRequest.input('Sport', params.sport);
         searchRequest.input('DateFrom', params.dateFrom);
         searchRequest.input('DateTo', params.dateTo);
+        searchRequest.input('Latitude', params.lat);
+        searchRequest.input('Longitude', params.long);
         searchRequest.input('OrderBy', params.orderBy);
         searchRequest.input('PageSize', params.pageSize);
         searchRequest.input('Page', params.page);
@@ -84,12 +86,12 @@ router.post('/new', auth, async (req, res) => {
         insertRequest.input('SPORT_ID', sportID);
         insertRequest.input('USER_ID', userID);
         insertRequest.input('NAME', newEvent.name);
-        insertRequest.input('LOCATION', newEvent.location);
+        insertRequest.input('LOCATION_NAME', newEvent.location);
         insertRequest.input('DATE', newEvent.date);
         insertRequest.input('DEADLINE', newEvent.deadline);
         insertRequest.input('DESCRIPTION', newEvent.description);
         await insertRequest.query(
-            `INSERT INTO Events (SportID, UserID, Name, Location, Date, Deadline, Description) VALUES ( @SPORT_ID, @USER_ID, @NAME, @LOCATION, @DATE, @DEADLINE, @DESCRIPTION )`
+            `INSERT INTO Events (SportID, UserID, Name, Location, LocationName, Date, Deadline, Description) VALUES ( @SPORT_ID, @USER_ID, @NAME, geography::STPointFromText('POINT(${newEvent.longitude} ${newEvent.latitude})', 4326), @LOCATION_NAME, @DATE, @DEADLINE, @DESCRIPTION )`
         );
 
         res.status(201).send('Event successfully created');
@@ -148,6 +150,8 @@ router.post('/apply', auth, async (req, res) => {
 const newEventSchema = Joi.object().keys({
     sport: Joi.string().required(),
     name: Joi.string().required(),
+    latitude: Joi.number().min(-90).max(90).required(),
+    longitude: Joi.number().min(-180).max(180).required(),
     location: Joi.string().required(),
     date: Joi.date().iso().required(),
     deadline: Joi.date().iso().max(Joi.ref('date')).required(),
@@ -159,7 +163,9 @@ const eventSearchQueryParamsSchema = Joi.object().keys({
     sport: Joi.string(),
     dateFrom: Joi.date().iso().default(() => new Date().toISOString(), 'current time'),
     dateTo: Joi.date().iso(),
-    orderBy: Joi.string().valid('date', 'deadline', 'name', 'location').default('date'),
+    lat: Joi.number().min(-90).max(90),
+    long: Joi.number().min(-180).max(180),
+    orderBy: Joi.string().valid('date', 'deadline', 'name', 'location', 'distance').default('date'),
     pageSize: Joi.number().min(1).max(100).default(10),
     page: Joi.number().min(1).default(1)
 }).options({ stripUnknown: true });
