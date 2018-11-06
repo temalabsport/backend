@@ -15,6 +15,7 @@
     "joi": "^14.0.1",
     "jsonwebtoken": "^8.3.0",
     "morgan": "^1.9.1",
-    "mssql": "^4.2.2"
+    "mssql": "^4.2.2",
+    "node-fetch": "^2.2.1"
   }
 }
