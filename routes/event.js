@@ -19,7 +19,8 @@ router.get('/search', auth, async (req, res) => {
 
     const params = validateResult.value;
     if (params.lat == null) {
-        const location = await ipLocator(req.ip);
+        const location = await ipLocator(req.connection.remoteAddress);
+        console.log(`Tried locating ${req.connection.remoteAddress} : ${location}`);
         params.lat = location.latitude;
         params.long = location.longitude;
     }
