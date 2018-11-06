@@ -7,8 +7,8 @@ module.exports = async (ip) => {
         if (res.status !== 200)
             throw new Error('API unexpected response');
         return res.json();
-    } catch ( error ) {
-        console.log('IP Locator Error', error);
+    } catch (error) {
+        console.log('IP Locator ERROR', error);
         return null;
     }
 }

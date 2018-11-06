@@ -1,5 +1,6 @@
 const pool = require('../utils/sqlConnectionPool').pool;
 const auth = require('../middleware/auth');
+const ipLocator = require('../utils/ipLocator');
 
 const Joi = require('joi');
 const express = require('express');
@@ -17,6 +18,11 @@ router.get('/search', auth, async (req, res) => {
     }
 
     const params = validateResult.value;
+    if (params.lat == null) {
+        const location = await ipLocator(req.ip);
+        params.lat = location.latitude;
+        params.long = location.longitude;
+    }
 
     try {
         const searchRequest = await pool.request();
@@ -168,7 +174,7 @@ const eventSearchQueryParamsSchema = Joi.object().keys({
     orderBy: Joi.string().valid('date', 'deadline', 'name', 'location', 'distance').default('date'),
     pageSize: Joi.number().min(1).max(100).default(10),
     page: Joi.number().min(1).default(1)
-}).options({ stripUnknown: true });
+}).with('lat', 'long').options({ stripUnknown: true });
 
 const eventApplySchema = Joi.object().keys({
     eventID: Joi.number().required(),
