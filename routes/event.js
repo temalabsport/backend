@@ -19,8 +19,9 @@ router.get('/search', auth, async (req, res) => {
 
     const params = validateResult.value;
     if (params.lat == null) {
-        const location = await ipLocator(req.connection.remoteAddress);
-        console.log(`Tried locating ${req.connection.remoteAddress} : ${location}`);
+        const ip = req.ip.substring(0, req.ip.indexOf(":"));
+        const location = await ipLocator(ip);
+        console.log(`Locating ${ip} -> Lat: ${location.latitude}, Long: ${location.longitude}, Country: ${location.country_name}, City: ${location.city}`);
         params.lat = location.latitude;
         params.long = location.longitude;
     }
@@ -42,7 +43,9 @@ router.get('/search', auth, async (req, res) => {
         const ret = {
             results: searchResult.recordset,
             totalResults: searchResult.output.TotalResults,
-            totalPages: searchResult.output.TotalPages
+            totalPages: searchResult.output.TotalPages,
+            latitude: params.lat,
+            longitude: params.long
         }
         res.send(ret);
         return;

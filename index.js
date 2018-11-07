@@ -9,6 +9,8 @@ const config = require('config');
 const express = require('express');
 const app = express();
 
+app.enable('trust proxy');
+
 app.use(morgan('tiny'));
 app.use(express.static('public'));
 app.use(express.json());
