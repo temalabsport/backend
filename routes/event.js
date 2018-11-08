@@ -1,5 +1,6 @@
 const pool = require('../utils/sqlConnectionPool').pool;
 const auth = require('../middleware/auth');
+const admin = require("../middleware/admin");
 const ipLocator = require('../utils/ipLocator');
 
 const Joi = require('joi');
@@ -156,6 +157,10 @@ router.post('/apply', auth, async (req, res) => {
         return;
     }
 });
+
+router.delete("/old", [auth, admin], (req, res) => {
+    res.send("OK");
+})
 
 const newEventSchema = Joi.object().keys({
     sport: Joi.string().required(),

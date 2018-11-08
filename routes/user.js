@@ -72,7 +72,7 @@ router.post('/login', async (req, res) => {
         const request = pool.request();
         request.input('Email', params.email);
         const result = await request.query(
-            `SELECT UserName, PasswordHash, PasswordSalt, FullName FROM Users WHERE Email = @Email`
+            `SELECT UserName, PasswordHash, PasswordSalt, FullName, Role FROM Users WHERE Email = @Email`
         );
         if (result.recordset.length !== 1) {
             res.status(400).send('No or invalid credentials provided');
@@ -81,10 +81,15 @@ router.post('/login', async (req, res) => {
             const userData = result.recordset[0];
             const passwordSalt = userData.PasswordSalt;
             const passwordHash = userData.PasswordHash;
+            let isAdmin = false;
+            if(userData.Role !== null){
+                isAdmin = userData.Role.split(",").includes("admin");
+            }
             if (hash.validate(params.password, passwordSalt, passwordHash)) {
                 const responseBody = {
                     userName: userData.UserName,
-                    fullName: userData.FullName
+                    fullName: userData.FullName,
+                    isAdmin: isAdmin === true
                 };
 
                 const token = jwt.sign(responseBody, config.get('jwtSecret'));
