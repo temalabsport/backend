@@ -159,6 +159,7 @@ router.post('/apply', auth, async (req, res) => {
 });
 
 router.delete("/old", [auth, admin], (req, res) => {
+    // TODO delete old event from database
     res.send("OK");
 })
 
