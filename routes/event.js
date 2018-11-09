@@ -159,25 +159,20 @@ router.post('/apply', auth, async (req, res) => {
 });
 
 router.delete("/old", [auth, admin], (req, res) => {
-    // TODO delete old event from database
-     /*   var now = JSON.parse(JSON.stringify({now: new Date()})).now;
+      var now = JSON.parse(JSON.stringify({now: new Date()})).now;
         console.send(now)
-    
     try{
         const DeleteOldEvents = pool.request();
         DeleteOld.input('CURRENT_DATE', now)
         const DeleteResult = await DeleteOldEvents.query(
             'DELETE FROM EVENTS WERE DATE < @CURRENT_DATE'
         );
-       
     } catch(error) {
         res.status(500).send('Server error');
         console.log('DATABASE ERROR : ', error);
         return;
     }
-*/
-    res.send("OK");
-   
+    res.send("OK");   
 });
 
 
