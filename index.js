@@ -4,8 +4,11 @@ const event = require('./routes/event');
 
 const pool = require('./utils/sqlConnectionPool');
 
+const notifyUserTask = require('./scheduled-tasks/notifyUsers');
+
 const morgan = require('morgan')
 const config = require('config');
+const cron = require('node-cron');
 const express = require('express');
 const app = express();
 
@@ -22,7 +25,9 @@ app.use('/api/event', event);
 const port = config.get('port');
 
 pool.init().then(() => {
-    app.listen(port, () =>
-        console.log(`Server listening on port ${port}...`)
-    )
+    app.listen(port, () => {
+        console.log(`Server listening on port ${port}...`);
+        cron.schedule('0 0 10 * * *', notifyUserTask);
+        console.log('Task scheuled');
+    })
 });

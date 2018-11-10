@@ -16,6 +16,7 @@
     "jsonwebtoken": "^8.3.0",
     "morgan": "^1.9.1",
     "mssql": "^4.2.2",
+    "node-cron": "^2.0.3",
     "node-fetch": "^2.2.1",
     "node-schedule": "^1.3.0"
   }

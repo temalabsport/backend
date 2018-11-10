@@ -138,7 +138,7 @@ router.post('/apply', auth, async (req, res) => {
         applyRequest.output('ResultMessage');
 
         applyResult = await applyRequest.execute('ApplyForEvent');
-        
+
         switch (applyResult.returnValue) {
             case 0:
                 res.status(201).send(applyResult.output.ResultMessage);
@@ -146,7 +146,7 @@ router.post('/apply', auth, async (req, res) => {
             case 1:
                 res.status(400).send(applyResult.output.ResultMessage);
                 return;
-        
+
             default:
                 res.status(500).send("Server error");
                 return;
@@ -158,21 +158,19 @@ router.post('/apply', auth, async (req, res) => {
     }
 });
 
-router.delete("/old", [auth, admin], (req, res) => {
-      var now = JSON.parse(JSON.stringify({now: new Date()})).now;
-        console.send(now)
-    try{
-        const DeleteOldEvents = pool.request();
-        DeleteOld.input('CURRENT_DATE', now)
-        const DeleteResult = await DeleteOldEvents.query(
-            'DELETE FROM EVENTS WERE DATE < @CURRENT_DATE'
+router.delete("/old", [auth, admin], async (req, res) => {
+    try {
+        const deleteOldEventRequest = pool.request();
+        const deleteResult = await deleteOldEventRequest.query(
+            `DELETE FROM Events WHERE Date < SYSDATETIME()`
         );
-    } catch(error) {
+        res.send(`${deleteResult.rowsAffected} events deleted`);
+        return;
+    } catch (error) {
         res.status(500).send('Server error');
         console.log('DATABASE ERROR : ', error);
         return;
     }
-    res.send("OK");   
 });
 
 
