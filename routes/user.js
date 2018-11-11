@@ -82,7 +82,7 @@ router.post('/login', async (req, res) => {
             const passwordSalt = userData.PasswordSalt;
             const passwordHash = userData.PasswordHash;
             let isAdmin = false;
-            if(userData.Role !== null){
+            if (userData.Role !== null) {
                 isAdmin = userData.Role.split(",").includes("admin");
             }
             if (hash.validate(params.password, passwordSalt, passwordHash)) {
@@ -137,7 +137,7 @@ router.put('/update', auth, async (req, res) => {
                 let newPasswordSalt = undefined;
                 let newPasswordHash = undefined;
 
-                if(params.newPassword !== undefined){
+                if (params.newPassword !== undefined) {
                     const newPasswordData = hash.generateNew(params.newPassword);
                     newPasswordSalt = newPasswordData.passwordSalt;
                     newPasswordHash = newPasswordData.passwordHash;
@@ -218,8 +218,6 @@ router.get('/findByUserName/:userName', auth, async (req, res) => {
         const userResult = await userRequest.query(
             `SELECT Users.UserName AS userName, Users.FullName AS fullName, Users.Introduction AS introduction FROM Users WHERE Users.UserName = @UserName`
         );
-
-        console.log(userRequest);
 
         if (userResult.recordset.length !== 1) {
             res.status(400).send('User with given userName does not exist');

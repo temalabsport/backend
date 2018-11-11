@@ -57,6 +57,52 @@ router.get('/search', auth, async (req, res) => {
     }
 });
 
+router.get('/:id', auth, async (req, res) => {
+    const validateResult = Joi.validate(req.params.id, Joi.number());
+    if (validateResult.error) {
+        res.status(400).send(validateResult.error.details[0].message);
+        return;
+    }
+
+    const id = validateResult.value;
+
+    try {
+        const eventRequest = pool.request();
+        eventRequest.input('ID', id);
+        const eventResult = await eventRequest.query(
+            `SELECT	Events.Name AS name,
+                Events.ID AS eventID,
+                CreatorUsers.UserName AS creator,
+                Sports.Name AS sport,
+                Sports.MinPlayers AS minTeamSize,
+                Sports.MaxPlayers AS maxTeamSize,
+                Location.Lat AS latitude,
+                Location.Long AS longitude,
+                Events.LocationName AS location,
+                Events.Date AS date,
+                Events.Deadline AS deadline,
+                Description AS description
+            FROM Events
+            JOIN Users AS CreatorUsers ON CreatorUsers.ID = Events.UserID
+			JOIN Sports ON Sports.ID = Events.SportID
+            WHERE Events.ID = @ID`
+        );
+
+        if (eventResult.recordset.length !== 1) {
+            res.status(400).send('Event not found');
+            return;
+        } else {
+            res.send(eventResult.recordset[0]);
+            return;
+        }
+
+    } catch (error) {
+        res.status(500).send('Server error');
+        console.log('DATABASE ERROR : ', error);
+        return;
+    }
+});
+
 router.post('/new', auth, async (req, res) => {
     const validateResult = Joi.validate(req.body, newEventSchema);
 
