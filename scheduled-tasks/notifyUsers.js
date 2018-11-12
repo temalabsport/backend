@@ -5,7 +5,7 @@ module.exports = async () => {
     try {
         const notifyRequest = await pool.request();
         const date = new Date();
-        date.setDate(date.getDate() + 3);
+        date.setDate(date.getDate() + 1);
         notifyRequest.input('Date', date.toISOString());
         const notifyResult = await notifyRequest.execute('GetNotifyList');
 
