@@ -3,6 +3,7 @@ const sports = require('./routes/sports');
 const event = require('./routes/event');
 
 const pool = require('./utils/sqlConnectionPool');
+const emailClient = require('./utils/emailClient');
 
 const notifyUserTask = require('./scheduled-tasks/notifyUsers');
 
@@ -24,7 +25,8 @@ app.use('/api/event', event);
 
 const port = config.get('port');
 
-pool.init().then(() => {
+pool.init().then(async () => {
+    await emailClient.init();
     app.listen(port, () => {
         console.log(`Server listening on port ${port}...`);
         cron.schedule('0 0 10 * * *', notifyUserTask);
