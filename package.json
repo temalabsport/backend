@@ -4,7 +4,8 @@
   "description": "Backend of the sport event organizer web application",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "mocha test.js"
   },
   "keywords": [],
   "author": "",
