@@ -21,6 +21,12 @@ describe('Password Hashing', function () {
         const passwordData1 = passwordHash.generateNew(passwordString);
         const passwordData2 = passwordHash.generateNew(passwordString);
         assert.strictEqual(passwordData1.passwordHash.equals(passwordData2.passwordHash), false);
+    });
+
+    it('Different password salt generated', function () {
+        const passwordString = 'testpass';
+        const passwordData1 = passwordHash.generateNew(passwordString);
+        const passwordData2 = passwordHash.generateNew(passwordString);
         assert.strictEqual(passwordData1.passwordSalt.equals(passwordData2.passwordSalt), false);
     })
 });

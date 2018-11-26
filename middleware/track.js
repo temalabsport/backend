@@ -4,8 +4,8 @@ const GA_TRACKING_ID = 'UA-128984916-1';
 module.exports = function (category, action, label, value) {
     return (req, res, next) => {
         trackEvent(category, action, label, value)
-            .then(result => console.log('Event tracked, result : ', result))
-            .catch(error => console.log('TRACKING ERROR : ', error));
+            //.then(result => console.log('Event tracked, result : ', result))
+            //.catch(error => console.log('TRACKING ERROR : ', error));
         next();
     }
 }
