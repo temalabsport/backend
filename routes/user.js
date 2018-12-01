@@ -21,6 +21,7 @@ router.post('/register', async (req, res) => {
         return;
     }
     const user = result.value;
+    console.log(user);
 
     try {
         const checkRequest = pool.request();
@@ -235,20 +236,20 @@ router.get('/findByUserName/:userName', auth, async (req, res) => {
 });
 
 const registerUserSchema = Joi.object().keys({
-    userName: Joi.string().min(5).max(20).required(),
+    userName: Joi.string().min(5).max(20).regex(/^[a-zA-Z0-9]*$/).required(),
     email: Joi.string().max(255).email().required(),
     password: Joi.string().min(8).required(),
-    fullName: Joi.string().required()
+    fullName: Joi.string().max(30).required()
 }).options({ stripUnknown: true });
 
 const loginUserSchema = Joi.object().keys({
-    email: Joi.string().email().required(),
+    email: Joi.string().max(255).email().required(),
     password: Joi.string().required()
 }).options({ stripUnknown: true });
 
 const updateUserSchema = Joi.object().keys({
-    newFullName: Joi.string(),
-    newIntroduction: Joi.string(),
+    newFullName: Joi.string().max(30),
+    newIntroduction: Joi.string().max(300),
     newPassword: Joi.string().min(8),
     currentPassword: Joi.string().required()
 }).or('newFullName', 'newIntroduction', 'newPassword').options({ stripUnknown: true });

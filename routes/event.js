@@ -222,13 +222,13 @@ router.delete("/old", [auth, admin], async (req, res) => {
 
 const newEventSchema = Joi.object().keys({
     sport: Joi.string().required(),
-    name: Joi.string().required(),
+    name: Joi.string().max(50).required(),
     latitude: Joi.number().min(-90).max(90).required(),
     longitude: Joi.number().min(-180).max(180).required(),
-    location: Joi.string().required(),
+    location: Joi.string().max(100).required(),
     date: Joi.date().iso().required(),
     deadline: Joi.date().iso().max(Joi.ref('date')).required(),
-    description: Joi.string().required()
+    description: Joi.string().max(300).required()
 }).options({ stripUnknown: true });
 
 const eventSearchQueryParamsSchema = Joi.object().keys({
@@ -245,6 +245,6 @@ const eventSearchQueryParamsSchema = Joi.object().keys({
 
 const eventApplySchema = Joi.object().keys({
     eventID: Joi.number().required(),
-    teamName: Joi.string().min(5).required(),
+    teamName: Joi.string().min(5).max(25).required(),
     members: Joi.array().items(Joi.string()).min(1).required()
 }).options({ stripUnknown: true });

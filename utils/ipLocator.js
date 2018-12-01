@@ -1,5 +1,4 @@
 const fetch = require('node-fetch');
-const util = require('util')
 
 module.exports = async (ip) => {
     try {
