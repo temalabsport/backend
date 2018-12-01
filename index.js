@@ -7,14 +7,19 @@ const emailClient = require('./utils/emailClient');
 
 const notifyUserTask = require('./scheduled-tasks/notifyUsers');
 
+const Sentry = require('@sentry/node');
 const morgan = require('morgan')
 const config = require('config');
 const cron = require('node-cron');
 const express = require('express');
 const app = express();
 
+Sentry.init({ dsn: 'https://2a77f90cdc22481c8031832cf7796259@sentry.io/1330652' });
+
 app.enable('trust proxy');
 
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.errorHandler());
 app.use(morgan('tiny'));
 app.use(express.static('public'));
 app.use(express.json());

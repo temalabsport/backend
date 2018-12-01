@@ -2,6 +2,7 @@ const pool = require('../utils/sqlConnectionPool').pool;
 const auth = require('../middleware/auth');
 const admin = require("../middleware/admin");
 const ipLocator = require('../utils/ipLocator');
+const track = require('../middleware/track');
 
 const Joi = require('joi');
 const express = require('express');
@@ -11,7 +12,7 @@ const router = express.Router();
 
 module.exports = router;
 
-router.get('/search', auth, async (req, res) => {
+router.get('/search', [auth, track('Example category', 'Example action', 'Example label', '100')], async (req, res) => {
     const validateResult = Joi.validate(req.query, eventSearchQueryParamsSchema);
     if (validateResult.error) {
         res.status(400).send(validateResult.error.details[0].message);
@@ -22,9 +23,11 @@ router.get('/search', auth, async (req, res) => {
     if (params.lat == null) {
         const ip = req.ip.substring(0, req.ip.indexOf(":"));
         const location = await ipLocator(ip);
-        console.log(`Locating ${ip} -> Lat: ${location.latitude}, Long: ${location.longitude}, Country: ${location.country_name}, City: ${location.city}`);
-        params.lat = location.latitude;
-        params.long = location.longitude;
+        if (location != null) {
+            console.log(`Locating ${ip} -> Lat: ${location.latitude}, Long: ${location.longitude}, Country: ${location.country_name}, City: ${location.city}`);
+            params.lat = location.latitude;
+            params.long = location.longitude;
+        }
     }
 
     try {
