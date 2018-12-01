@@ -13,6 +13,7 @@
   "dependencies": {
     "@sentry/node": "^4.3.4",
     "config": "^2.0.1",
+    "cors": "^2.8.5",
     "express": "^4.16.4",
     "got": "^9.3.2",
     "joi": "^14.0.1",
