@@ -21,7 +21,6 @@ router.post('/register', async (req, res) => {
         return;
     }
     const user = result.value;
-    console.log(user);
 
     try {
         const checkRequest = pool.request();
